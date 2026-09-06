@@ -112,6 +112,11 @@ fun MediaPlayerView(
                     super.onIsPlayingChanged(isPlaying)
                     keepScreenOn = isPlaying
                 }
+
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    super.onPlayerError(error)
+                    Logger.e("MediaPlayerView", "Playback error: ${error.message}", error)
+                }
             }
         }
 
@@ -137,7 +142,6 @@ fun MediaPlayerView(
                     parameters =
                         buildUponParameters()
                             .setMaxVideoSize(1920, 1920)
-                            .setForceHighestSupportedBitrate(true)
                             .build()
                 }
             ExoPlayer
