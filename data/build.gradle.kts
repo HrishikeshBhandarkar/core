@@ -69,21 +69,21 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(projects.common)
-                implementation(projects.domain)
-                implementation(projects.aiService)
-                implementation(projects.autoEqService)
-                implementation(projects.lyricsService)
-                implementation(projects.spotify)
-                implementation(projects.kotlinYtmusicScraper)
-                implementation(projects.kizzy)
-                implementation(projects.listenTogether)
+                implementation(project(":common"))
+                implementation(project(":domain"))
+                implementation(project(":aiService"))
+                implementation(project(":autoEqService"))
+                implementation(project(":lyricsService"))
+                implementation(project(":spotify"))
+                implementation(project(":kotlinYtmusicScraper"))
+                implementation(project(":kizzy"))
+                implementation(project(":listenTogether"))
 
                 // Last.fm (gated: real scrobbler for full builds, no-op stub for FOSS builds)
                 if (isFullBuild) {
-                    implementation(projects.lastfm)
+                    implementation(project(":lastfm"))
                 } else {
-                    implementation(projects.lastfmEmpty)
+                    implementation(project(":lastfm-empty"))
                 }
 
                 implementation(libs.kotlin.stdlib)
@@ -116,7 +116,7 @@ kotlin {
                 // commonMain by default and will correctly pull the Android artifacts of any KMP
                 // dependencies declared in commonMain.
                 implementation(libs.koin.android)
-                implementation(projects.media3)
+                implementation(project(":media3"))
                 implementation(libs.room.ktx)
             }
         }
@@ -133,7 +133,7 @@ kotlin {
 
         jvmMain {
             dependencies {
-                implementation(projects.mediaJvm)
+                implementation(project(":media-jvm"))
                 implementation(libs.nowplaying)
                 implementation(libs.jna)
                 implementation(libs.jna.platform)

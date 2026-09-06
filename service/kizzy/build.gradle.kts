@@ -34,9 +34,9 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 // Add KMP dependencies here
-                implementation(projects.common)
-                implementation(projects.domain)
-                implementation(projects.ktorExt)
+                implementation(project(":common"))
+                implementation(project(":domain"))
+                implementation(project(":ktorExt"))
                 implementation(libs.ktor.client.encoding)
                 implementation(libs.ktor.serialization.kotlinx.json)
                 implementation(libs.ktor.client.content.negotiation)

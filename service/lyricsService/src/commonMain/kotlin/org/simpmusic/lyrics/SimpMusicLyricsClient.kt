@@ -4,9 +4,12 @@ import com.maxrave.ktorext.crypto.Hmac
 import com.maxrave.ktorext.crypto.HmacUri
 import com.maxrave.logger.Logger
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import org.simpmusic.lyrics.am.AMArtistResource
 import org.simpmusic.lyrics.am.AMSearchResponse
+import org.simpmusic.lyrics.am.AppleMusicArtworkResult
 import org.simpmusic.lyrics.models.request.LyricsBody
 import org.simpmusic.lyrics.models.request.TranslatedLyricsBody
 import org.simpmusic.lyrics.models.response.BaseResponse
@@ -154,6 +157,18 @@ class SimpMusicLyricsClient {
         rs.ttml
     }
 
+    suspend fun searchBiniLyrics(
+        q_track: String,
+        q_artist: String,
+    ): String? = runCatching {
+        val rs = lyricsService.searchBiniLyrics(q_track, q_artist).body<org.simpmusic.lyrics.models.response.BiniLyricsResponse>()
+        val url = rs.results?.find { it.timing_type == "word" }?.lyricsUrl
+            ?: rs.results?.firstOrNull()?.lyricsUrl
+            ?: return@runCatching null
+
+        lyricsService.httpClient.get(url).bodyAsText()
+    }.onFailure { it.printStackTrace() }.getOrNull()
+
     suspend fun searchAMArtist(
         name: String,
         limit: Int = 5,
@@ -189,6 +204,31 @@ class SimpMusicLyricsClient {
                 ?.artists
                 ?.get(id)
         }
+
+    suspend fun getAppleMusicAlbumArtwork(
+        albumTitle: String,
+        artistName: String,
+    ): Result<AppleMusicArtworkResult?> =
+        runCatching {
+            lyricsService.getAppleMusicAlbumArtwork(albumTitle, artistName)
+        }
+
+    suspend fun getAppleMusicSongArtwork(
+        songTitle: String,
+        artistName: String,
+        albumTitle: String? = null,
+    ): Result<AppleMusicArtworkResult?> =
+        runCatching {
+            lyricsService.getAppleMusicSongArtwork(songTitle, artistName, albumTitle)
+        }
+
+    suspend fun getSongwriters(
+        songTitle: String,
+        artistName: String,
+    ): List<String>? =
+        runCatching {
+            lyricsService.getSongwriters(songTitle, artistName)
+        }.getOrNull()
 
     private suspend inline fun <reified T> HttpResponse.bodyOrThrow(): T {
         if (this.status.value == 429) {

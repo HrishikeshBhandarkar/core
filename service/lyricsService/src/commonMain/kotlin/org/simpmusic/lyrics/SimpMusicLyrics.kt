@@ -25,17 +25,20 @@ import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.simpmusic.lyrics.am.AMTokenManager
+import org.simpmusic.lyrics.am.AppleMusicArtworkService
 import org.simpmusic.lyrics.models.request.LyricsBody
 import org.simpmusic.lyrics.models.request.TranslatedLyricsBody
 import org.simpmusic.lyrics.models.request.VoteBody
 
 class SimpMusicLyrics {
-    private var httpClient = createClient()
+    internal var httpClient = createClient()
+    private var amArtworkService = AppleMusicArtworkService(httpClient)
     var proxy: ProxyConfig? = null
         set(value) {
             field = value
             httpClient.close()
             httpClient = createClient()
+            amArtworkService = AppleMusicArtworkService(httpClient)
         }
 
     private val baseUrl = "https://api-lyrics.simpmusic.org/v1/"
@@ -201,6 +204,14 @@ class SimpMusicLyrics {
         }
     }
 
+    suspend fun searchBiniLyrics(
+        q_track: String,
+        q_artist: String,
+    ) = httpClient.get("https://lyrics-api.binimum.org/getLyrics") {
+        buildDefaultHeaders()
+        parameter("q", "$q_artist $q_track")
+    }
+
     suspend fun searchAMArtist(
         name: String,
         limit: Int,
@@ -252,4 +263,13 @@ class SimpMusicLyrics {
         parameter("platform", "web")
         buildAMHeaders(token)
     }
+
+    suspend fun getAppleMusicAlbumArtwork(albumName: String, artistName: String) =
+        amArtworkService.getAlbumArtwork(albumName, artistName)
+
+    suspend fun getAppleMusicSongArtwork(songTitle: String, artistName: String, albumName: String? = null) =
+        amArtworkService.getSongArtwork(songTitle, artistName, albumName)
+
+    suspend fun getSongwriters(songTitle: String, artistName: String) =
+        amArtworkService.getSongwriters(songTitle, artistName)
 }

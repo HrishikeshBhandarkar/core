@@ -34,8 +34,8 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(libs.kotlin.stdlib)
-                implementation(projects.common)
-                implementation(projects.ktorExt)
+                implementation(project(":common"))
+                implementation(project(":ktorExt"))
                 implementation(libs.ktor.client.encoding)
             }
         }

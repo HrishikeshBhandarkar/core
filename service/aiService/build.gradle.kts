@@ -52,7 +52,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 // Add KMP dependencies here
-                implementation(projects.domain)
+                implementation(project(":domain"))
                 implementation(libs.ktor.client.core)
                 implementation(libs.gemini.kotlin)
             }

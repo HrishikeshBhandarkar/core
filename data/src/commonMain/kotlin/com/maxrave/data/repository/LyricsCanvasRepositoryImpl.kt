@@ -9,6 +9,7 @@ import com.maxrave.domain.data.entities.LyricsEntity
 import com.maxrave.domain.data.entities.TranslatedLyricsEntity
 import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.data.model.browse.artist.ArtistLogo
+import com.maxrave.domain.data.model.canvas.AppleMusicArtwork
 import com.maxrave.domain.data.model.canvas.CanvasResult
 import com.maxrave.domain.data.model.metadata.Lyrics
 import com.maxrave.domain.data.model.metadata.SimpMusicLyrics
@@ -35,6 +36,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.simpmusic.aiservice.AiClient
 import org.simpmusic.lyrics.SimpMusicLyricsClient
+import org.simpmusic.lyrics.am.AppleMusicArtworkResult
 import org.simpmusic.lyrics.am.toImageUrl
 import org.simpmusic.lyrics.models.request.LyricsBody
 import org.simpmusic.lyrics.models.request.TranslatedLyricsBody
@@ -447,6 +449,50 @@ internal class LyricsCanvasRepositoryImpl(
                 }
         }.flowOn(Dispatchers.IO)
 
+    override fun getBiniLyrics(
+        artist: String,
+        track: String,
+        duration: Int?,
+    ): Flow<Resource<Lyrics>> =
+        flow {
+            Logger.w("Lyrics", "getBiniLyrics: $artist $track")
+            val qartist =
+                artist
+                    .replace(
+                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
+                        " ",
+                    ).replace(
+                        Regex("( và | & | и | e | und |, |和| dan)"),
+                        " ",
+                    ).replace("  ", " ")
+                    .replace(Regex("([()])"), "")
+                    .replace(".", " ")
+            val qtrack =
+                track
+                    .replace(
+                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
+                        " ",
+                    ).replace(
+                        Regex("( và | & | и | e | und |, |和| dan)"),
+                        " ",
+                    ).replace("  ", " ")
+                    .replace(Regex("([()])"), "")
+                    .replace(".", " ")
+            
+            val ttml = simpMusicLyrics.searchBiniLyrics(qtrack, qartist)
+            if (ttml.isNullOrEmpty()) {
+                emit(Resource.Error<Lyrics>("No BiniLyrics found"))
+                return@flow
+            }
+            try {
+                val lyrics = parseTtmlLyrics(ttml).toLyrics()
+                emit(Resource.Success(lyrics))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                emit(Resource.Error<Lyrics>("BiniLyrics parsing failed"))
+            }
+        }.flowOn(Dispatchers.IO)
+
     override fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>> =
         flow {
             simpMusicLyrics
@@ -691,4 +737,66 @@ internal class LyricsCanvasRepositoryImpl(
                     emit(Resource.Error<String>(it.message ?: "Failed to insert translated lyrics"))
                 }
         }.flowOn(Dispatchers.IO)
+
+    override fun getAppleMusicAlbumArtwork(
+        albumTitle: String,
+        artistName: String,
+    ): Flow<Resource<AppleMusicArtwork>> =
+        flow {
+            simpMusicLyrics
+                .getAppleMusicAlbumArtwork(albumTitle, artistName)
+                .onSuccess { result ->
+                    if (result != null && result.found) {
+                        emit(Resource.Success(result.toAppleMusicArtwork()))
+                    } else {
+                        emit(Resource.Error("Album artwork not found"))
+                    }
+                }.onFailure { e ->
+                    emit(Resource.Error(e.message ?: "Failed to fetch album artwork"))
+                }
+        }.flowOn(Dispatchers.IO)
+
+    override fun getAppleMusicSongArtwork(
+        songTitle: String,
+        artistName: String,
+        albumTitle: String?,
+    ): Flow<Resource<AppleMusicArtwork>> =
+        flow {
+            simpMusicLyrics
+                .getAppleMusicSongArtwork(songTitle, artistName, albumTitle)
+                .onSuccess { result ->
+                    if (result != null && result.found) {
+                        emit(Resource.Success(result.toAppleMusicArtwork()))
+                    } else {
+                        emit(Resource.Error("Song artwork not found"))
+                    }
+                }.onFailure { e ->
+                    emit(Resource.Error(e.message ?: "Failed to fetch song artwork"))
+                }
+        }.flowOn(Dispatchers.IO)
+
+    private fun AppleMusicArtworkResult.toAppleMusicArtwork(): AppleMusicArtwork =
+        AppleMusicArtwork(
+            found = found,
+            hasMotion = hasMotion,
+            trackId = trackId,
+            albumId = albumId,
+            trackName = trackName,
+            artistName = artistName,
+            albumName = albumName,
+            staticArtworkUrl = staticArtworkUrl,
+            squareMotionUrl = squareMotionUrl,
+            tallMotionUrl = tallMotionUrl,
+            directMp4Url = directMp4Url,
+            bestMotionUrl = bestMotionUrl,
+            appleMusicUrl = appleMusicUrl,
+        )
+
+    override suspend fun getSongwriters(
+        songTitle: String,
+        artistName: String,
+    ): List<String>? =
+        withContext(Dispatchers.IO) {
+            simpMusicLyrics.getSongwriters(songTitle, artistName)
+        }
 }

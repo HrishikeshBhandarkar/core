@@ -52,10 +52,10 @@ kotlin {
                 // keeps the engine choice in one place — the same route kizzy's Discord gateway
                 // takes. Coroutines arrive transitively with ktor-client-core, which is why no
                 // module here declares them: the version catalog has no coroutines-core entry.
-                implementation(projects.ktorExt)
+                implementation(project(":ktorExt"))
                 implementation(libs.ktor.client.websockets)
                 // Logger.
-                implementation(projects.common)
+                implementation(project(":common"))
             }
         }
 

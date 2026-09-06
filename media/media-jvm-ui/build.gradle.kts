@@ -13,9 +13,9 @@ kotlin {
     }
 
     dependencies {
-        implementation(projects.common)
-        implementation(projects.domain)
-        implementation(projects.mediaJvm)
+        implementation(project(":common"))
+        implementation(project(":domain"))
+        implementation(project(":media-jvm"))
         // UI
         implementation(libs.compose.ui)
         implementation(libs.compose.material3)

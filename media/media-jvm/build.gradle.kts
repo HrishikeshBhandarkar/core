@@ -13,8 +13,8 @@ kotlin {
         freeCompilerArgs.add("-Xwhen-guards")
     }
     dependencies {
-        implementation(projects.common)
-        implementation(projects.domain)
+        implementation(project(":common"))
+        implementation(project(":domain"))
         implementation(platform(libs.koin.bom))
         implementation(libs.koin.jvm)
         implementation(libs.kotlinx.serialization.json)

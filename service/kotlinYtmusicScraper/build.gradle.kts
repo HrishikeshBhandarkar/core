@@ -61,9 +61,9 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.stdlib)
                 // Add KMP dependencies here
-                implementation(projects.domain)
-                implementation(projects.common)
-                implementation(projects.ktorExt)
+                implementation(project(":domain"))
+                implementation(project(":common"))
+                implementation(project(":ktorExt"))
                 implementation(libs.okio)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.ktor.client.encoding)

@@ -4,6 +4,7 @@ import com.maxrave.domain.data.entities.LyricsEntity
 import com.maxrave.domain.data.entities.TranslatedLyricsEntity
 import com.maxrave.domain.data.model.browse.album.Track
 import com.maxrave.domain.data.model.browse.artist.ArtistLogo
+import com.maxrave.domain.data.model.canvas.AppleMusicArtwork
 import com.maxrave.domain.data.model.canvas.CanvasResult
 import com.maxrave.domain.data.model.metadata.Lyrics
 import com.maxrave.domain.manager.DataStoreManager
@@ -66,6 +67,12 @@ interface LyricsCanvasRepository {
         duration: Int?,
     ): Flow<Resource<Lyrics>>
 
+    fun getBiniLyrics(
+        artist: String,
+        track: String,
+        duration: Int?,
+    ): Flow<Resource<Lyrics>>
+
     /** Fetch the artist's name-logo image + dominant color from the hidden catalog. */
     fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>>
 
@@ -104,4 +111,20 @@ interface LyricsCanvasRepository {
         translatedLyrics: Lyrics,
         language: String,
     ): Flow<Resource<String>>
+
+    fun getAppleMusicAlbumArtwork(
+        albumTitle: String,
+        artistName: String,
+    ): Flow<Resource<AppleMusicArtwork>>
+
+    fun getAppleMusicSongArtwork(
+        songTitle: String,
+        artistName: String,
+        albumTitle: String? = null,
+    ): Flow<Resource<AppleMusicArtwork>>
+
+    suspend fun getSongwriters(
+        songTitle: String,
+        artistName: String,
+    ): List<String>?
 }

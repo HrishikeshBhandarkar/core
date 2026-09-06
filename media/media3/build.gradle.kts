@@ -51,8 +51,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.espresso.core)
 
-    implementation(projects.common)
-    implementation(projects.domain)
+    implementation(project(":common"))
+    implementation(project(":domain"))
 
     // Koin
     implementation(platform(libs.koin.bom))
@@ -84,8 +84,8 @@ dependencies {
 
     // Google Cast (gated: real SDK for full builds, no-op stub for FOSS builds)
     if (isFullBuild) {
-        implementation(projects.cast)
+        implementation(project(":cast"))
     } else {
-        implementation(projects.castEmpty)
+        implementation(project(":cast-empty"))
     }
 }

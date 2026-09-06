@@ -114,9 +114,18 @@ fun MediaPlayerView(
             }
         }
 
-    // Initialize ExoPlayer
+    // Initialize ExoPlayer with forced high-quality track selection
     val exoPlayer =
         remember {
+            val trackSelector =
+                androidx.media3.exoplayer.trackselection.DefaultTrackSelector(context).apply {
+                    setParameters(
+                        buildUponParameters()
+                            .setForceHighestSupportedBitrate(true)
+                            .setAllowVideoMixedMimeTypeAdaptiveness(true)
+                            .setAllowVideoNonSeamlessAdaptiveness(true)
+                    )
+                }
             val cacheSink =
                 CacheDataSink
                     .Factory()
@@ -133,6 +142,7 @@ fun MediaPlayerView(
                     .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
             ExoPlayer
                 .Builder(context)
+                .setTrackSelector(trackSelector)
                 .setLoadControl(
                     DefaultLoadControl
                         .Builder()
@@ -181,7 +191,7 @@ fun MediaPlayerView(
         Box(modifier = modifier.graphicsLayer { clip = true }) {
             PlayerSurface(
                 player = exoPlayer,
-                surfaceType = SURFACE_TYPE_SURFACE_VIEW,
+                surfaceType = androidx.media3.ui.compose.SURFACE_TYPE_SURFACE_VIEW,
                 modifier =
                     Modifier
                         .fillMaxSize()
