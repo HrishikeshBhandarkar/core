@@ -11,14 +11,41 @@ fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x
 
 fun sha1(str: String): String = MessageDigest.getInstance("SHA-1").digest(str.toByteArray()).toHex()
 
-fun parseCookieString(cookie: String): Map<String, String> =
-    cookie
-        .split("; ")
-        .filter { it.isNotEmpty() }
+fun parseCookieString(cookie: String): Map<String, String> {
+    val trimmed = cookie.trim()
+    if (trimmed.isEmpty()) return emptyMap()
+
+    // Check if it's Netscape HTTP Cookie File format
+    if (trimmed.startsWith("# Netscape") || trimmed.contains("\t")) {
+        val map = mutableMapOf<String, String>()
+        trimmed.lineSequence().forEach { line ->
+            val l = line.trim()
+            if (l.isNotEmpty() && !l.startsWith("#")) {
+                val parts = l.split("\t")
+                if (parts.size >= 7) {
+                    val name = parts[5].trim()
+                    val value = parts[6].trim()
+                    if (name.isNotEmpty()) {
+                        map[name] = value
+                    }
+                }
+            }
+        }
+        if (map.isNotEmpty()) return map
+    }
+
+    // Standard Cookie header string: "key1=val1; key2=val2" or separated by newlines
+    return trimmed
+        .split(";", "\n")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && it.contains("=") }
         .associate {
-            val (key, value) = it.split("=")
+            val key = it.substringBefore("=").trim()
+            val value = it.substringAfter("=").trim()
             key to value
         }
+}
+
 
 fun String.parseTime(): Int? {
     try {

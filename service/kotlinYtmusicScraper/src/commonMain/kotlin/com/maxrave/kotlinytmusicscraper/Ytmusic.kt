@@ -1,6 +1,9 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.maxrave.kotlinytmusicscraper
 
 import com.maxrave.domain.extension.now
+import kotlin.time.Clock
 import com.maxrave.kotlinytmusicscraper.extractor.Extractor
 import com.maxrave.kotlinytmusicscraper.models.Context
 import com.maxrave.kotlinytmusicscraper.models.SongItem
@@ -124,10 +127,17 @@ class Ytmusic {
     private var poTokenChallengeRequestKey = "O43z0dpjhgX20SCx4KAo"
     var cookie: String? = null
         set(value) {
-            field = value
-            cookieMap = if (value == null) emptyMap() else parseCookieString(value)
-            extractor.logIn(value)
+            val parsed = if (value == null) emptyMap() else parseCookieString(value)
+            cookieMap = parsed
+            field = if (value != null && (value.trim().startsWith("# Netscape") || value.contains("\t"))) {
+                // If Netscape format was supplied, normalize it to standard Cookie header string
+                parsed.map { "${it.key}=${it.value}" }.joinToString("; ")
+            } else {
+                value
+            }
+            extractor.logIn(field)
         }
+
 
     var pageId: String? = null
 
@@ -225,9 +235,11 @@ class Ytmusic {
                 val cookie = customCookie ?: this@Ytmusic.cookie
                 cookie?.let { cookie ->
                     append("Cookie", cookie)
-                    if ("SAPISID" !in cookieMap || "__Secure-3PAPISID" !in cookieMap) return@let
-                    val currentTime = now().toInstant(TimeZone.currentSystemDefault()).epochSeconds / 1000
-                    val sapisidCookie = cookieMap["SAPISID"] ?: cookieMap["__Secure-3PAPISID"]
+                    val sapisidCookie = cookieMap["SAPISID"]
+                        ?: cookieMap["__Secure-3PAPISID"]
+                        ?: cookieMap["__Secure-1PAPISID"]
+                        ?: return@let
+                    val currentTime = Clock.System.now().epochSeconds
                     val sapisidHash = sha1("$currentTime $sapisidCookie https://music.youtube.com")
                     Logger.d(TAG, "SAPI SID Hash: SAPISIDHASH ${currentTime}_$sapisidHash")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
@@ -238,16 +250,18 @@ class Ytmusic {
         parameter("prettyPrint", false)
     }
 
-    @OptIn(ExperimentalTime::class)
     internal fun getAuthorizationHeader(): String? =
-        cookie?.let { cookie ->
-            if ("SAPISID" !in cookieMap || "__Secure-3PAPISID" !in cookieMap) null
-            val currentTime = now().toInstant(TimeZone.currentSystemDefault()).epochSeconds / 1000
-            val sapisidCookie = cookieMap["SAPISID"] ?: cookieMap["__Secure-3PAPISID"]
+        cookie?.let {
+            val sapisidCookie = cookieMap["SAPISID"]
+                ?: cookieMap["__Secure-3PAPISID"]
+                ?: cookieMap["__Secure-1PAPISID"]
+                ?: return null
+            val currentTime = Clock.System.now().epochSeconds
             val sapisidHash = sha1("$currentTime $sapisidCookie https://music.youtube.com")
             Logger.d(TAG, "SAPI SID Hash: SAPISIDHASH ${currentTime}_$sapisidHash")
             "SAPISIDHASH ${currentTime}_$sapisidHash"
         }
+
 
     fun getNewPipePlayer(videoId: String): List<Pair<Int, String>> = extractor.newPipePlayer(videoId)
 

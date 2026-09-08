@@ -151,6 +151,34 @@ fun CookieItem.toNetScapeString(): String =
                 acc.append(cookie.toNetscapeFormat()).append("\n")
             }.toString()
 
+@OptIn(ExperimentalTime::class)
+fun String.toNetscapeCookieString(domain: String = ".youtube.com"): String {
+    val trimmed = this.trim()
+    if (trimmed.startsWith("# Netscape") || trimmed.contains("\t")) {
+        return trimmed
+    }
+    val cookies = trimmed
+        .split(";", "\n")
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && it.contains("=") }
+        .map {
+            val key = it.substringBefore("=").trim()
+            val value = it.substringAfter("=").trim()
+            CookieItem.Content(
+                domain = domain,
+                path = "/",
+                isSecure = true,
+                expiresUtc = Clock.System.now().epochSeconds + 86400L * 365L,
+                hostKey = domain,
+                name = key,
+                value = value,
+            )
+
+        }
+    return CookieItem(domain, cookies).toNetScapeString()
+}
+
+
 /**
  * Decodes HTML entities in a string to their corresponding characters.
  * Handles both named entities (e.g. &amp;) and numeric entities (e.g. &#39; &#x27;).
