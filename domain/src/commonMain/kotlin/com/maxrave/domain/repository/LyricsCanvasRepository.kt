@@ -73,6 +73,12 @@ interface LyricsCanvasRepository {
         duration: Int?,
     ): Flow<Resource<Lyrics>>
 
+    fun getQQMusicLyrics(
+        artist: String,
+        track: String,
+        duration: Int?,
+    ): Flow<Resource<Lyrics>>
+
     /** Fetch the artist's name-logo image + dominant color from the hidden catalog. */
     fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>>
 

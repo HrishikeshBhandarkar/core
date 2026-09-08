@@ -493,6 +493,44 @@ internal class LyricsCanvasRepositoryImpl(
             }
         }.flowOn(Dispatchers.IO)
 
+    override fun getQQMusicLyrics(
+        artist: String,
+        track: String,
+        duration: Int?,
+    ): Flow<Resource<Lyrics>> =
+        flow {
+            Logger.w("Lyrics", "getQQMusicLyrics: $artist $track $duration")
+            val qartist =
+                artist
+                    .replace(
+                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
+                        " ",
+                    ).replace(
+                        Regex("( và | & | и | e | und |, |和| dan)"),
+                        " ",
+                    ).replace("  ", " ")
+                    .replace(Regex("([()])"), "")
+                    .replace(".", " ")
+            val qtrack =
+                track
+                    .replace(
+                        Regex("\\((feat\\.|ft.|cùng với|con|mukana|com|avec|合作音乐人: ) "),
+                        " ",
+                    ).replace(
+                        Regex("( và | & | и | e | und |, |和| dan)"),
+                        " ",
+                    ).replace("  ", " ")
+                    .replace(Regex("([()])"), "")
+                    .replace(".", " ")
+
+            val result = simpMusicLyrics.searchQQMusicLyrics(qtrack, qartist, duration)
+            if (result != null && !result.lyrics?.lines.isNullOrEmpty()) {
+                emit(Resource.Success(result.toLyrics()))
+            } else {
+                emit(Resource.Error<Lyrics>("No QQ Music lyrics found"))
+            }
+        }.flowOn(Dispatchers.IO)
+
     override fun getArtistLogo(artistName: String): Flow<Resource<ArtistLogo>> =
         flow {
             simpMusicLyrics

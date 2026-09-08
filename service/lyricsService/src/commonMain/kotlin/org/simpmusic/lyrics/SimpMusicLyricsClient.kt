@@ -7,9 +7,11 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.json.Json
 import org.simpmusic.lyrics.am.AMArtistResource
 import org.simpmusic.lyrics.am.AMSearchResponse
 import org.simpmusic.lyrics.am.AppleMusicArtworkResult
+import org.simpmusic.lyrics.domain.Lyrics
 import org.simpmusic.lyrics.models.request.LyricsBody
 import org.simpmusic.lyrics.models.request.TranslatedLyricsBody
 import org.simpmusic.lyrics.models.response.BaseResponse
@@ -19,6 +21,11 @@ import org.simpmusic.lyrics.models.response.LyricsResponse
 import org.simpmusic.lyrics.models.response.TranslatedLyricsResponse
 import org.simpmusic.lyrics.parser.parseSyncedLyrics
 import org.simpmusic.lyrics.parser.parseUnsyncedLyrics
+import org.simpmusic.lyrics.qq.QQMusicDes
+import org.simpmusic.lyrics.qq.QQMusicParser
+import org.simpmusic.lyrics.qq.QQPlainLyricResponse
+import org.simpmusic.lyrics.qq.QQSearchResponse
+import org.simpmusic.lyrics.qq.ZlibInflater
 import kotlin.math.abs
 
 private const val TAG = "SimpMusicLyricsClient"
@@ -229,6 +236,79 @@ class SimpMusicLyricsClient {
         runCatching {
             lyricsService.getSongwriters(songTitle, artistName)
         }.getOrNull()
+
+    suspend fun searchQQMusicLyrics(
+        q_track: String,
+        q_artist: String,
+        durationSeconds: Int? = null,
+    ): Lyrics? = runCatching {
+        val query = "$q_track $q_artist".trim()
+        val searchResp = lyricsService.searchQQMusic(query)
+        if (searchResp.status.value !in 200..299) return@runCatching null
+
+        val searchBody = searchResp.bodyAsText()
+        val jsonParser = Json { ignoreUnknownKeys = true; isLenient = true }
+        val searchData = jsonParser.decodeFromString<QQSearchResponse>(searchBody)
+        val songList = searchData.req_1?.data?.body?.song?.list
+        val topSong = if (durationSeconds != null && durationSeconds > 0) {
+            songList?.find { it.interval != null && kotlin.math.abs(it.interval - durationSeconds) <= 5 }
+                ?: songList?.firstOrNull()
+        } else {
+            songList?.firstOrNull()
+        } ?: return@runCatching null
+
+        val songId = topSong.id ?: 0L
+        val songMid = topSong.mid.orEmpty()
+
+        // 1. Try word-by-word QRC
+        if (songId > 0L) {
+            try {
+                val qrcResp = lyricsService.fetchQQQrcRaw(songId)
+                if (qrcResp.status.value in 200..299) {
+                    val qrcText = qrcResp.bodyAsText().trim()
+                    val contentRegex = Regex("""<content[^>]*>\s*(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?\s*</content>""", RegexOption.DOT_MATCHES_ALL)
+                    val match = contentRegex.find(qrcText)
+                    val hexBlob = match?.groupValues?.get(1)?.trim()
+                        ?: if (qrcText.length > 100 && qrcText.all { it.isDigit() || it in 'a'..'f' || it in 'A'..'F' }) qrcText else null
+
+                    if (!hexBlob.isNullOrEmpty() && hexBlob != "0") {
+                        val cipherBytes = QQMusicDes.hexToBytes(hexBlob)
+                        val decrypted = QQMusicDes.decryptQrc(cipherBytes)
+                        val inflated = ZlibInflater.inflate(decrypted)
+                        val qrcXml = inflated.decodeToString()
+                        val lyrics = QQMusicParser.parseQrcToLyrics(qrcXml)
+                        if (!lyrics.lyrics?.lines.isNullOrEmpty()) {
+                            return@runCatching lyrics
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "QQ Music QRC error: ${e.message}")
+            }
+        }
+
+        // 2. Fallback to plain LRC
+        if (songMid.isNotEmpty()) {
+            try {
+                val lrcResp = lyricsService.fetchQQPlainLrc(songMid)
+                if (lrcResp.status.value in 200..299) {
+                    val body = lrcResp.bodyAsText()
+                    val plainData = jsonParser.decodeFromString<QQPlainLyricResponse>(body)
+                    val rawLrc = plainData.lyric
+                    if (!rawLrc.isNullOrBlank()) {
+                        val lyrics = parseSyncedLyrics(rawLrc)
+                        if (!lyrics.lyrics?.lines.isNullOrEmpty()) {
+                            return@runCatching lyrics
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Logger.e(TAG, "QQ Music LRC fallback error: ${e.message}")
+            }
+        }
+
+        null
+    }.onFailure { it.printStackTrace() }.getOrNull()
 
     private suspend inline fun <reified T> HttpResponse.bodyOrThrow(): T {
         if (this.status.value == 429) {

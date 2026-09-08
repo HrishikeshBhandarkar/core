@@ -527,6 +527,7 @@ interface DataStoreManager {
         const val LRCLIB = "lrclib"
         const val BETTER_LYRICS = "better_lyrics"
         const val BINILYRICS = "binilyrics"
+        const val QQ_MUSIC = "qq_music"
 
         const val FDROID = "fdroid"
         const val GITHUB_FOSS_NIGHTLY = "github_foss_nightly"

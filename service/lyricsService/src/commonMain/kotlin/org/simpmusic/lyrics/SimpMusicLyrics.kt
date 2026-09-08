@@ -7,12 +7,14 @@ import com.maxrave.logger.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.ProxyConfig
 import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.cache.HttpCache
 import io.ktor.client.plugins.compression.ContentEncoding
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.cookies.AcceptAllCookiesStorage
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.timeout
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -23,12 +25,14 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.simpmusic.lyrics.am.AMTokenManager
 import org.simpmusic.lyrics.am.AppleMusicArtworkService
 import org.simpmusic.lyrics.models.request.LyricsBody
 import org.simpmusic.lyrics.models.request.TranslatedLyricsBody
 import org.simpmusic.lyrics.models.request.VoteBody
+import org.simpmusic.lyrics.qq.QQSearchRequest
 
 class SimpMusicLyrics {
     internal var httpClient = createClient()
@@ -50,6 +54,7 @@ class SimpMusicLyrics {
             expectSuccess = false
             followRedirects = true
             install(HttpCache)
+            install(HttpTimeout)
             install(CurlLogger) {
                 logger = { Logger.d("SimpMusicLyrics", it) }
             }
@@ -272,4 +277,73 @@ class SimpMusicLyrics {
 
     suspend fun getSongwriters(songTitle: String, artistName: String) =
         amArtworkService.getSongwriters(songTitle, artistName)
+
+    suspend fun searchQQMusic(query: String): HttpResponse {
+        val req = QQSearchRequest(
+            req_1 = QQSearchRequest.QQReq1(
+                param = QQSearchRequest.QQSearchParam(
+                    query = query,
+                ),
+            ),
+        )
+        val jsonStr = Json { encodeDefaults = true }.encodeToString(req)
+        return httpClient.get("https://u.y.qq.com/cgi-bin/musicu.fcg") {
+            timeout {
+                requestTimeoutMillis = 45_000L
+                connectTimeoutMillis = 45_000L
+                socketTimeoutMillis = 45_000L
+            }
+            header("Referer", "https://y.qq.com/")
+            header(
+                HttpHeaders.UserAgent,
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            )
+            parameter("data", jsonStr)
+        }
+    }
+
+    suspend fun fetchQQQrcRaw(songId: Long): HttpResponse {
+        return httpClient.get("https://c.y.qq.com/qqmusic/fcgi-bin/lyric_download.fcg") {
+            timeout {
+                requestTimeoutMillis = 45_000L
+                connectTimeoutMillis = 45_000L
+                socketTimeoutMillis = 45_000L
+            }
+            header("Referer", "https://y.qq.com/")
+            header(
+                HttpHeaders.UserAgent,
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            )
+            parameter("version", "15")
+            parameter("miniversion", "82")
+            parameter("lrctype", "4")
+            parameter("musicid", songId.toString())
+        }
+    }
+
+    suspend fun fetchQQPlainLrc(songMid: String): HttpResponse {
+        return httpClient.get("https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg") {
+            timeout {
+                requestTimeoutMillis = 45_000L
+                connectTimeoutMillis = 45_000L
+                socketTimeoutMillis = 45_000L
+            }
+            header("Referer", "https://y.qq.com/")
+            header(
+                HttpHeaders.UserAgent,
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            )
+            parameter("nobase64", "1")
+            parameter("songmid", songMid)
+            parameter("g_tk", "5381")
+            parameter("loginUin", "0")
+            parameter("hostUin", "0")
+            parameter("format", "json")
+            parameter("inCharset", "utf8")
+            parameter("outCharset", "utf-8")
+            parameter("notice", "0")
+            parameter("platform", "yqq.json")
+            parameter("needNewCode", "0")
+        }
+    }
 }
