@@ -522,6 +522,7 @@ interface DataStoreManager {
     }
 
     companion object Values {
+        const val AUTO = "auto"
         const val SIMPMUSIC = "simpmusic"
         const val YOUTUBE = "youtube"
         const val LRCLIB = "lrclib"

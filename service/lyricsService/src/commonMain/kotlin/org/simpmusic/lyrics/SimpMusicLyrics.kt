@@ -289,9 +289,9 @@ class SimpMusicLyrics {
         val jsonStr = Json { encodeDefaults = true }.encodeToString(req)
         return httpClient.get("https://u.y.qq.com/cgi-bin/musicu.fcg") {
             timeout {
-                requestTimeoutMillis = 45_000L
-                connectTimeoutMillis = 45_000L
-                socketTimeoutMillis = 45_000L
+                requestTimeoutMillis = 10_000L
+                connectTimeoutMillis = 10_000L
+                socketTimeoutMillis = 10_000L
             }
             header("Referer", "https://y.qq.com/")
             header(
@@ -305,9 +305,9 @@ class SimpMusicLyrics {
     suspend fun fetchQQQrcRaw(songId: Long): HttpResponse {
         return httpClient.get("https://c.y.qq.com/qqmusic/fcgi-bin/lyric_download.fcg") {
             timeout {
-                requestTimeoutMillis = 45_000L
-                connectTimeoutMillis = 45_000L
-                socketTimeoutMillis = 45_000L
+                requestTimeoutMillis = 10_000L
+                connectTimeoutMillis = 10_000L
+                socketTimeoutMillis = 10_000L
             }
             header("Referer", "https://y.qq.com/")
             header(
@@ -324,9 +324,9 @@ class SimpMusicLyrics {
     suspend fun fetchQQPlainLrc(songMid: String): HttpResponse {
         return httpClient.get("https://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg") {
             timeout {
-                requestTimeoutMillis = 45_000L
-                connectTimeoutMillis = 45_000L
-                socketTimeoutMillis = 45_000L
+                requestTimeoutMillis = 10_000L
+                connectTimeoutMillis = 10_000L
+                socketTimeoutMillis = 10_000L
             }
             header("Referer", "https://y.qq.com/")
             header(
