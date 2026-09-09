@@ -100,16 +100,17 @@ data class BrowseResponse(
 
     @Serializable
     data class Header(
-        val musicImmersiveHeaderRenderer: MusicImmersiveHeaderRenderer?,
-        val musicDetailHeaderRenderer: MusicDetailHeaderRenderer?,
-        val musicEditablePlaylistDetailHeaderRenderer: MusicEditablePlaylistDetailHeaderRenderer?,
-        val musicVisualHeaderRenderer: MusicVisualHeaderRenderer?,
-        val musicHeaderRenderer: MusicHeaderRenderer?,
+        val musicImmersiveHeaderRenderer: MusicImmersiveHeaderRenderer? = null,
+        val musicDetailHeaderRenderer: MusicDetailHeaderRenderer? = null,
+        val musicEditablePlaylistDetailHeaderRenderer: MusicEditablePlaylistDetailHeaderRenderer? = null,
+        val musicVisualHeaderRenderer: MusicVisualHeaderRenderer? = null,
+        val musicHeaderRenderer: MusicHeaderRenderer? = null,
+        val musicResponsiveHeaderRenderer: SectionListRenderer.Content.MusicResponsiveHeaderRenderer? = null,
     ) {
         @Serializable
         data class MusicImmersiveHeaderRenderer(
             val title: Runs,
-            val description: Runs?,
+            val description: Runs? = null,
             val thumbnail: ThumbnailRenderer?,
             val playButton: Button?,
             val startRadioButton: Button?,
@@ -122,19 +123,19 @@ data class BrowseResponse(
             val title: Runs,
             val subtitle: Runs,
             val secondSubtitle: Runs,
-            val description: Runs?,
+            val description: Runs? = null,
             val thumbnail: ThumbnailRenderer,
             val menu: Menu,
         )
 
         @Serializable
         data class MusicEditablePlaylistDetailHeaderRenderer(
-            val header: Header,
+            val header: Header? = null,
         ) {
             @Serializable
             data class Header(
-                val musicDetailHeaderRenderer: MusicDetailHeaderRenderer?,
-                val musicResponsiveHeaderRenderer: SectionListRenderer.Content.MusicResponsiveHeaderRenderer?,
+                val musicDetailHeaderRenderer: MusicDetailHeaderRenderer? = null,
+                val musicResponsiveHeaderRenderer: SectionListRenderer.Content.MusicResponsiveHeaderRenderer? = null,
             )
         }
 

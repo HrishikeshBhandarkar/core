@@ -7,17 +7,17 @@ import kotlinx.serialization.json.JsonNames
 
 @Serializable
 data class SectionListRenderer(
-    val header: Header?,
-    val contents: List<Content>?,
-    val continuations: List<Continuation>?,
+    val header: Header? = null,
+    val contents: List<Content>? = null,
+    val continuations: List<Continuation>? = null,
 ) {
     @Serializable
     data class Header(
-        val chipCloudRenderer: ChipCloudRenderer?,
+        val chipCloudRenderer: ChipCloudRenderer? = null,
     ) {
         @Serializable
         data class ChipCloudRenderer(
-            val chips: List<Chip>,
+            val chips: List<Chip>? = null,
         ) {
             @Serializable
             data class Chip(
@@ -28,8 +28,8 @@ data class SectionListRenderer(
                     val isSelected: Boolean? = null,
                     val navigationEndpoint: NavigationEndpoint,
                     // The close button doesn't have the following two fields
-                    val text: Runs?,
-                    val uniqueId: String?,
+                    val text: Runs? = null,
+                    val uniqueId: String? = null,
                 )
             }
         }
@@ -39,26 +39,26 @@ data class SectionListRenderer(
     @Serializable
     data class Content(
         @JsonNames("musicImmersiveCarouselShelfRenderer")
-        val musicCarouselShelfRenderer: MusicCarouselShelfRenderer?,
-        val musicShelfRenderer: MusicShelfRenderer?,
-        val musicCardShelfRenderer: MusicCardShelfRenderer?,
-        val musicPlaylistShelfRenderer: MusicPlaylistShelfRenderer?,
-        val musicDescriptionShelfRenderer: MusicDescriptionShelfRenderer?,
-        val musicResponsiveHeaderRenderer: MusicResponsiveHeaderRenderer?,
-        val musicEditablePlaylistDetailHeaderRenderer: BrowseResponse.Header.MusicEditablePlaylistDetailHeaderRenderer?,
-        val gridRenderer: GridRenderer?,
+        val musicCarouselShelfRenderer: MusicCarouselShelfRenderer? = null,
+        val musicShelfRenderer: MusicShelfRenderer? = null,
+        val musicCardShelfRenderer: MusicCardShelfRenderer? = null,
+        val musicPlaylistShelfRenderer: MusicPlaylistShelfRenderer? = null,
+        val musicDescriptionShelfRenderer: MusicDescriptionShelfRenderer? = null,
+        val musicResponsiveHeaderRenderer: MusicResponsiveHeaderRenderer? = null,
+        val musicEditablePlaylistDetailHeaderRenderer: BrowseResponse.Header.MusicEditablePlaylistDetailHeaderRenderer? = null,
+        val gridRenderer: GridRenderer? = null,
     ) {
         @Serializable
         data class MusicResponsiveHeaderRenderer(
-            val description: Description?,
-            val straplineTextOne: StraplineTextOne?,
-            val straplineThumbnail: StraplineThumbnail?,
-            val subtitle: MusicShelfRenderer.Content.MusicMultiRowListItemRenderer.Subtitle?,
-            val thumbnail: ThumbnailRenderer?,
-            val title: Title?,
-            val secondSubtitle: MusicShelfRenderer.Content.MusicMultiRowListItemRenderer.Subtitle?,
-            val facepile: Facepile?,
-            val buttons: List<Button>?,
+            val description: Description? = null,
+            val straplineTextOne: StraplineTextOne? = null,
+            val straplineThumbnail: StraplineThumbnail? = null,
+            val subtitle: MusicShelfRenderer.Content.MusicMultiRowListItemRenderer.Subtitle? = null,
+            val thumbnail: ThumbnailRenderer? = null,
+            val title: Title? = null,
+            val secondSubtitle: MusicShelfRenderer.Content.MusicMultiRowListItemRenderer.Subtitle? = null,
+            val facepile: Facepile? = null,
+            val buttons: List<Button>? = null,
         ) {
             @Serializable
             data class Facepile(

@@ -24,127 +24,53 @@ internal fun parsePlaylistData(
     playlistId: String,
     viewString: String,
 ): PlaylistBrowse? {
+    var title = "Playlist"
+    val listAuthor: ArrayList<Author> = arrayListOf()
+    var duration = ""
+    var description = ""
+    val listThumbnails: ArrayList<Thumbnail> = arrayListOf()
+    var year = now().year.toString()
+    var trackCount = 0
+
     if (header != null) {
-        var title = ""
-        val listAuthor: ArrayList<Author> = arrayListOf()
-        var duration = ""
-        var description = ""
-        val listThumbnails: ArrayList<Thumbnail> = arrayListOf()
-        var year = now().year.toString()
-        var trackCount = 0
         when (header) {
             is BrowseResponse.Header.MusicDetailHeaderRenderer -> {
-                title +=
-                    header.title.runs
-                        ?.get(0)
-                        ?.text
+                title = header.title?.runs?.firstOrNull()?.text ?: ""
                 Logger.d("PlaylistParser", "title: $title")
-                if (!header.subtitle.runs.isNullOrEmpty() && header.subtitle.runs?.size!! > 2) {
+                val subtitleRuns = header.subtitle?.runs
+                if (!subtitleRuns.isNullOrEmpty() && subtitleRuns.size > 2) {
                     val author =
                         Author(
                             id =
-                                header.subtitle.runs
-                                    ?.get(2)
+                                subtitleRuns
+                                    .getOrNull(2)
                                     ?.navigationEndpoint
                                     ?.browseEndpoint
                                     ?.browseId ?: "",
                             name =
-                                header.subtitle.runs
-                                    ?.get(2)
+                                subtitleRuns
+                                    .getOrNull(2)
                                     ?.text ?: "",
                         )
                     listAuthor.add(author)
                     Logger.d("PlaylistParser", "author: $author")
                 }
-                val secondSubtitle = header.secondSubtitle.runs
+                val secondSubtitle = header.secondSubtitle?.runs
                 Logger.w("PlaylistParser", "secondSubtitle: $secondSubtitle")
                 if (!secondSubtitle.isNullOrEmpty() && secondSubtitle.size > 2) {
-                    duration += secondSubtitle.getOrNull(2)?.text
+                    duration += secondSubtitle.getOrNull(2)?.text ?: ""
                 }
                 Logger.d("PlaylistParser", "duration: $duration")
-                if (!header.description?.runs.isNullOrEmpty()) {
-                    for (run in header.description?.runs!!) {
-                        description += (run.text)
-                    }
+                for (run in header.description?.runs.orEmpty()) {
+                    description += run.text
                 }
-                if (!header.subtitle.runs.isNullOrEmpty() && header.subtitle.runs?.size!! > 4) {
+                if (!subtitleRuns.isNullOrEmpty() && subtitleRuns.size > 4) {
                     year =
-                        header.subtitle.runs
-                            ?.get(4)
+                        subtitleRuns
+                            .getOrNull(4)
                             ?.text ?: now().year.toString()
                 }
-                header.thumbnail.croppedSquareThumbnailRenderer
-                    ?.thumbnail
-                    ?.thumbnails
-                    ?.toListThumbnail()
-                    ?.let { listThumbnails.addAll(it) }
-            }
-
-            is BrowseResponse.Header.MusicEditablePlaylistDetailHeaderRenderer? -> {
-                title +=
-                    header.header.musicDetailHeaderRenderer
-                        ?.title
-                        ?.runs
-                        ?.get(0)
-                        ?.text
-                Logger.d("PlaylistParser", "title: $title")
-                val author =
-                    Author(
-                        id =
-                            header.header.musicDetailHeaderRenderer
-                                ?.subtitle
-                                ?.runs
-                                ?.get(2)
-                                ?.navigationEndpoint
-                                ?.browseEndpoint
-                                ?.browseId
-                                ?: "",
-                        name =
-                            header.header.musicDetailHeaderRenderer
-                                ?.subtitle
-                                ?.runs
-                                ?.get(2)
-                                ?.text ?: "",
-                    )
-                listAuthor.add(author)
-                Logger.d("PlaylistParser", "author: $author")
-                if (header.header.musicDetailHeaderRenderer
-                        ?.secondSubtitle
-                        ?.runs
-                        ?.size!! > 4
-                ) {
-                    duration +=
-                        header.header.musicDetailHeaderRenderer
-                            ?.secondSubtitle
-                            ?.runs
-                            ?.get(4)
-                            ?.text
-                } else if (header.header.musicDetailHeaderRenderer
-                        ?.secondSubtitle
-                        ?.runs
-                        ?.size!! == 3
-                ) {
-                    duration +=
-                        header.header.musicDetailHeaderRenderer
-                            ?.secondSubtitle
-                            ?.runs
-                            ?.get(2)
-                            ?.text
-                }
-                Logger.d("PlaylistParser", "duration: $duration")
-                if (!header.header.musicDetailHeaderRenderer
-                        ?.description
-                        ?.runs
-                        .isNullOrEmpty()
-                ) {
-                    for (run in header.header.musicDetailHeaderRenderer
-                        ?.description
-                        ?.runs!!) {
-                        description += (run.text)
-                    }
-                }
-                header.header.musicDetailHeaderRenderer
-                    ?.thumbnail
+                header.thumbnail
                     ?.croppedSquareThumbnailRenderer
                     ?.thumbnail
                     ?.thumbnails
@@ -152,107 +78,235 @@ internal fun parsePlaylistData(
                     ?.let { listThumbnails.addAll(it) }
             }
 
-            is SectionListRenderer.Content.MusicResponsiveHeaderRenderer? -> {
-                title +=
-                    header.title
-                        ?.runs
-                        ?.firstOrNull()
-                        ?.text
-                Logger.d("PlaylistParser", "title: $title")
-                val secondSubtitle = header.secondSubtitle?.runs
-                if (!secondSubtitle.isNullOrEmpty()) {
-                    /**
-                     * Fuck Kotlin
-                     * Ref: https://stackoverflow.com/q/48379981/20605098
-                     */
-                    trackCount =
-                        try {
-                            if (secondSubtitle.size >= 5) {
-                                secondSubtitle
-                                    .getOrNull(2)
-                                    ?.text
-                                    ?.split("\\s".toRegex())
-                                    ?.firstOrNull()
-                                    ?.toInt() ?: 0
-                            } else {
-                                secondSubtitle
-                                    .firstOrNull()
-                                    ?.text
-                                    ?.split("\\s".toRegex())
-                                    ?.firstOrNull()
-                                    ?.toInt() ?: 0
-                            }
-                        } catch (e: Exception) {
-                            Logger.e("PlaylistParser", "Error parsing track count: ${e.message}")
-                            e.printStackTrace()
-                            0
-                        }
-                }
-                year =
-                    header.subtitle
-                        ?.runs
-                        ?.lastOrNull()
-                        ?.text
-                        ?: now().year.toString()
-                val author =
-                    Author(
-                        id =
-                            header.straplineTextOne
-                                ?.runs
-                                ?.get(0)
-                                ?.navigationEndpoint
-                                ?.browseEndpoint
-                                ?.browseId
-                                ?: header.facepile
-                                    ?.avatarStackViewModel
-                                    ?.rendererContext
-                                    ?.commandContext
-                                    ?.onTap
-                                    ?.innertubeCommand
+            is BrowseResponse.Header.MusicEditablePlaylistDetailHeaderRenderer? -> {
+                val detailHeader = header?.header?.musicDetailHeaderRenderer
+                val responsiveHeader = header?.header?.musicResponsiveHeaderRenderer
+                if (detailHeader != null) {
+                    title =
+                        detailHeader
+                            .title
+                            ?.runs
+                            ?.firstOrNull()
+                            ?.text ?: ""
+                    Logger.d("PlaylistParser", "title: $title")
+                    val subtitleRuns = detailHeader.subtitle?.runs
+                    val author =
+                        Author(
+                            id =
+                                subtitleRuns
+                                    ?.getOrNull(2)
+                                    ?.navigationEndpoint
                                     ?.browseEndpoint
                                     ?.browseId
-                                ?: "",
-                        name =
-                            header.straplineTextOne
-                                ?.runs
-                                ?.get(0)
-                                ?.text
-                                ?: header.facepile
-                                    ?.avatarStackViewModel
-                                    ?.text
-                                    ?.content
-                                ?: "YouTube Music",
-                    )
-                listAuthor.add(author)
-                Logger.d("PlaylistParser", "author: $author")
-                Logger.w("PlaylistParser", "secondSubtitle: $secondSubtitle")
-                if (!secondSubtitle.isNullOrEmpty() && secondSubtitle.size > 4) {
-                    duration += secondSubtitle.getOrNull(4)?.text
-                } else if (!secondSubtitle.isNullOrEmpty() && secondSubtitle.size == 3) {
-                    duration += secondSubtitle.getOrNull(2)?.text
-                }
-                Logger.d("PlaylistParser", "duration: $duration")
-                if (!header.description
-                        ?.musicDescriptionShelfRenderer
-                        ?.description
-                        ?.runs
-                        .isNullOrEmpty()
-                ) {
-                    for (run in header.description
-                        ?.musicDescriptionShelfRenderer
-                        ?.description
-                        ?.runs!!) {
-                        description += (run.text)
+                                    ?: "",
+                            name =
+                                subtitleRuns
+                                    ?.getOrNull(2)
+                                    ?.text ?: "",
+                        )
+                    listAuthor.add(author)
+                    Logger.d("PlaylistParser", "author: $author")
+                    val secondSubtitleRuns = detailHeader.secondSubtitle?.runs
+                    if (!secondSubtitleRuns.isNullOrEmpty()) {
+                        if (secondSubtitleRuns.size > 4) {
+                            duration +=
+                                secondSubtitleRuns
+                                    .getOrNull(4)
+                                    ?.text ?: ""
+                        } else if (secondSubtitleRuns.size == 3) {
+                            duration +=
+                                secondSubtitleRuns
+                                    .getOrNull(2)
+                                    ?.text ?: ""
+                        }
                     }
+                    Logger.d("PlaylistParser", "duration: $duration")
+                    for (run in detailHeader.description?.runs.orEmpty()) {
+                        description += run.text
+                    }
+                    detailHeader
+                        .thumbnail
+                        ?.croppedSquareThumbnailRenderer
+                        ?.thumbnail
+                        ?.thumbnails
+                        ?.toListThumbnail()
+                        ?.let { listThumbnails.addAll(it) }
+                } else if (responsiveHeader != null) {
+                    title =
+                        responsiveHeader.title
+                            ?.runs
+                            ?.firstOrNull()
+                            ?.text ?: ""
+                    Logger.d("PlaylistParser", "title: $title")
+                    val secondSubtitle = responsiveHeader.secondSubtitle?.runs
+                    if (!secondSubtitle.isNullOrEmpty()) {
+                        trackCount =
+                            try {
+                                if (secondSubtitle.size >= 5) {
+                                    secondSubtitle
+                                        .getOrNull(2)
+                                        ?.text
+                                        ?.split("\\s".toRegex())
+                                        ?.firstOrNull()
+                                        ?.toInt() ?: 0
+                                } else {
+                                    secondSubtitle
+                                        .firstOrNull()
+                                        ?.text
+                                        ?.split("\\s".toRegex())
+                                        ?.firstOrNull()
+                                        ?.toInt() ?: 0
+                                }
+                            } catch (e: Exception) {
+                                Logger.e("PlaylistParser", "Error parsing track count: ${e.message}")
+                                0
+                            }
+                    }
+                    year =
+                        responsiveHeader.subtitle
+                            ?.runs
+                            ?.lastOrNull()
+                            ?.text
+                            ?: now().year.toString()
+                    val author =
+                        Author(
+                            id =
+                                responsiveHeader.straplineTextOne
+                                    ?.runs
+                                    ?.firstOrNull()
+                                    ?.navigationEndpoint
+                                    ?.browseEndpoint
+                                    ?.browseId
+                                    ?: responsiveHeader.facepile
+                                        ?.avatarStackViewModel
+                                        ?.rendererContext
+                                        ?.commandContext
+                                        ?.onTap
+                                        ?.innertubeCommand
+                                        ?.browseEndpoint
+                                        ?.browseId
+                                    ?: "",
+                            name =
+                                responsiveHeader.straplineTextOne
+                                    ?.runs
+                                    ?.firstOrNull()
+                                    ?.text
+                                    ?: responsiveHeader.facepile
+                                        ?.avatarStackViewModel
+                                        ?.text
+                                        ?.content
+                                    ?: "YouTube Music",
+                        )
+                    listAuthor.add(author)
+                    if (!secondSubtitle.isNullOrEmpty()) {
+                        if (secondSubtitle.size > 4) {
+                            duration += secondSubtitle.getOrNull(4)?.text ?: ""
+                        } else if (secondSubtitle.size == 3) {
+                            duration += secondSubtitle.getOrNull(2)?.text ?: ""
+                        }
+                    }
+                    for (run in responsiveHeader.description?.musicDescriptionShelfRenderer?.description?.runs.orEmpty()) {
+                        description += run.text
+                    }
+                    responsiveHeader.thumbnail
+                        ?.musicThumbnailRenderer
+                        ?.thumbnail
+                        ?.thumbnails
+                        ?.toListThumbnail()
+                        ?.let { listThumbnails.addAll(it) }
                 }
-                header.thumbnail
-                    ?.musicThumbnailRenderer
-                    ?.thumbnail
-                    ?.thumbnails
-                    ?.toListThumbnail()
-                    ?.let { listThumbnails.addAll(it) }
+            }
+
+            is SectionListRenderer.Content.MusicResponsiveHeaderRenderer? -> {
+                if (header != null) {
+                    title =
+                        header.title
+                            ?.runs
+                            ?.firstOrNull()
+                            ?.text ?: ""
+                    Logger.d("PlaylistParser", "title: $title")
+                    val secondSubtitle = header.secondSubtitle?.runs
+                    if (!secondSubtitle.isNullOrEmpty()) {
+                        trackCount =
+                            try {
+                                if (secondSubtitle.size >= 5) {
+                                    secondSubtitle
+                                        .getOrNull(2)
+                                        ?.text
+                                        ?.split("\\s".toRegex())
+                                        ?.firstOrNull()
+                                        ?.toInt() ?: 0
+                                } else {
+                                    secondSubtitle
+                                        .firstOrNull()
+                                        ?.text
+                                        ?.split("\\s".toRegex())
+                                        ?.firstOrNull()
+                                        ?.toInt() ?: 0
+                                }
+                            } catch (e: Exception) {
+                                Logger.e("PlaylistParser", "Error parsing track count: ${e.message}")
+                                e.printStackTrace()
+                                0
+                            }
+                    }
+                    year =
+                        header.subtitle
+                            ?.runs
+                            ?.lastOrNull()
+                            ?.text
+                            ?: now().year.toString()
+                    val author =
+                        Author(
+                            id =
+                                header.straplineTextOne
+                                    ?.runs
+                                    ?.firstOrNull()
+                                    ?.navigationEndpoint
+                                    ?.browseEndpoint
+                                    ?.browseId
+                                    ?: header.facepile
+                                        ?.avatarStackViewModel
+                                        ?.rendererContext
+                                        ?.commandContext
+                                        ?.onTap
+                                        ?.innertubeCommand
+                                        ?.browseEndpoint
+                                        ?.browseId
+                                    ?: "",
+                            name =
+                                header.straplineTextOne
+                                    ?.runs
+                                    ?.firstOrNull()
+                                    ?.text
+                                    ?: header.facepile
+                                        ?.avatarStackViewModel
+                                        ?.text
+                                        ?.content
+                                    ?: "YouTube Music",
+                        )
+                    listAuthor.add(author)
+                    Logger.d("PlaylistParser", "author: $author")
+                    Logger.w("PlaylistParser", "secondSubtitle: $secondSubtitle")
+                    if (!secondSubtitle.isNullOrEmpty() && secondSubtitle.size > 4) {
+                        duration += secondSubtitle.getOrNull(4)?.text ?: ""
+                    } else if (!secondSubtitle.isNullOrEmpty() && secondSubtitle.size == 3) {
+                        duration += secondSubtitle.getOrNull(2)?.text ?: ""
+                    }
+                    Logger.d("PlaylistParser", "duration: $duration")
+                    for (run in header.description?.musicDescriptionShelfRenderer?.description?.runs.orEmpty()) {
+                        description += run.text
+                    }
+                    header.thumbnail
+                        ?.musicThumbnailRenderer
+                        ?.thumbnail
+                        ?.thumbnails
+                        ?.toListThumbnail()
+                        ?.let { listThumbnails.addAll(it) }
+                }
             }
         }
+    }
         Logger.d("PlaylistParser", "description: $description")
         val listTrack: MutableList<Track> = arrayListOf()
         for (content in listContent) {
@@ -347,14 +401,11 @@ internal fun parsePlaylistData(
             id = playlistId,
             privacy = "PUBLIC",
             thumbnails = listThumbnails,
-            title = title,
+            title = if (title.isBlank()) "Playlist" else title,
             trackCount = if (trackCount == 0) listContent.size else trackCount,
             tracks = listTrack,
             year = year,
         )
-    } else {
-        return null
-    }
 }
 
 internal fun parseSetVideoId(
@@ -374,9 +425,8 @@ internal fun parseSetVideoId(
                 ?.serviceEndpoint
                 ?.playlistEditEndpoint
                 ?.actions
-                ?.get(
-                    0,
-                )?.setVideoId
+                ?.firstOrNull()
+                ?.setVideoId
         if (videoId != null && setVideoId != null) {
             listSetVideoId.add(SetVideoIdEntity(videoId, setVideoId, playlistId))
         } else {

@@ -1,5 +1,8 @@
-﻿package com.maxrave.kotlinytmusicscraper
+package com.maxrave.kotlinytmusicscraper
 
+import com.maxrave.kotlinytmusicscraper.parser.fromPlaylistToTrack
+import com.maxrave.kotlinytmusicscraper.parser.getPlaylistRadioEndpoint
+import com.maxrave.kotlinytmusicscraper.parser.getPlaylistShuffleEndpoint
 import com.maxrave.kotlinytmusicscraper.utils.parseCookieString
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -87,4 +90,69 @@ class CookieAuthTest {
         assertNotNull(auth, "Should succeed with only __Secure-3PAPISID present")
         assertTrue(auth.startsWith("SAPISIDHASH "))
     }
+
+    @Test
+    fun testLiveCustomQueryAndExtractor() = kotlinx.coroutines.runBlocking {
+        val cookieFile = java.io.File(System.getProperty("user.home"), ".simpmusic/ytdlp-cookie.txt")
+        val cookieContent = if (cookieFile.exists()) cookieFile.readText() else null
+        println("Cookie file exists: ${cookieFile.exists()}, length: ${cookieContent?.length}")
+
+        val yt = YouTube()
+        if (cookieContent != null) {
+            yt.cookie = cookieContent
+        }
+
+        // Test customQuery on VLLM
+        val vllmResult = yt.customQuery("VLLM", setLogin = true)
+        println("vllmResult isSuccess: ${vllmResult.isSuccess}")
+        if (vllmResult.isFailure) {
+            println("vllmResult exception: ${vllmResult.exceptionOrNull()}")
+            vllmResult.exceptionOrNull()?.printStackTrace()
+        } else {
+            val vllmResp = vllmResult.getOrNull()
+            if (vllmResp != null) {
+                val vllmTracks = vllmResp.fromPlaylistToTrack()
+                println("VLLM parsed tracks count: ${vllmTracks.size}")
+            }
+        }
+
+        // Test customQuery on a playlist
+        val playlistId = "VLRDCLAK5uy_nZiG9ehz_MQoWQxY5yElsLHCcG0tv9PRg"
+        val queryResult = yt.customQuery(playlistId, setLogin = true)
+        println("customQuery result: isSuccess=${queryResult.isSuccess}")
+        if (queryResult.isFailure) {
+            println("customQuery failed with exception: ${queryResult.exceptionOrNull()}")
+            queryResult.exceptionOrNull()?.printStackTrace()
+        } else {
+            val browseResp = queryResult.getOrNull()
+            println("browseResp contents: ${browseResp?.contents != null}")
+            if (browseResp != null) {
+                val playlistTracks = browseResp.fromPlaylistToTrack()
+                val radio = browseResp.getPlaylistRadioEndpoint()
+                val shuffle = browseResp.getPlaylistShuffleEndpoint()
+                println("Playlist parsed tracks count: ${playlistTracks.size}")
+                println("Playlist radio endpoint: ${radio?.videoId ?: radio?.playlistId}")
+                println("Playlist shuffle endpoint: ${shuffle?.videoId ?: shuffle?.playlistId}")
+            }
+        }
+
+        // Test Extractor
+        val extractor = com.maxrave.kotlinytmusicscraper.extractor.Extractor()
+        extractor.init()
+        if (cookieContent != null) {
+            extractor.logIn(cookieContent)
+        }
+        val videoId = "OMOGaugKpzs"
+        val streams = extractor.newPipePlayer(videoId)
+        println("Extractor streams for $videoId: count=${streams.size}, itags=${streams.map { it.first }}")
+
+        // Test youTube.player
+        val playerResult = yt.player(videoId)
+        println("youTube.player result: isSuccess=${playerResult.isSuccess}")
+        if (playerResult.isFailure) {
+            println("youTube.player failed: ${playerResult.exceptionOrNull()}")
+            playerResult.exceptionOrNull()?.printStackTrace()
+        }
+    }
 }
+

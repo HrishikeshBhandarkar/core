@@ -30,6 +30,7 @@ import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.kotlinytmusicscraper.models.MusicShelfRenderer
 import com.maxrave.kotlinytmusicscraper.models.SongItem
 import com.maxrave.kotlinytmusicscraper.models.WatchEndpoint
+import com.maxrave.kotlinytmusicscraper.models.response.BrowseResponse
 import com.maxrave.kotlinytmusicscraper.pages.NextPage
 import com.maxrave.kotlinytmusicscraper.parser.getPlaylistContinuation
 import com.maxrave.kotlinytmusicscraper.parser.getPlaylistRadioEndpoint
@@ -221,58 +222,13 @@ internal class PlaylistRepositoryImpl(
                     .customQuery(browseId = id, setLogin = true)
                     .onSuccess { result ->
                         val listContent: ArrayList<MusicShelfRenderer.Content> = arrayListOf()
-                        val data: List<MusicShelfRenderer.Content>? =
-                            result.contents
-                                ?.singleColumnBrowseResultsRenderer
-                                ?.tabs
-                                ?.get(
-                                    0,
-                                )?.tabRenderer
-                                ?.content
-                                ?.sectionListRenderer
-                                ?.contents
-                                ?.get(
-                                    0,
-                                )?.musicPlaylistShelfRenderer
-                                ?.contents
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.secondaryContents
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicPlaylistShelfRenderer
-                                    ?.contents
+                        val data: List<MusicShelfRenderer.Content>? = extractPlaylistShelfContents(result)
                         if (data != null) {
                             Logger.d("Data", "data: $data")
                             Logger.d("Data", "data size: ${data.size}")
                             listContent.addAll(data)
                         }
-                        val header =
-                            result.header?.musicDetailHeaderRenderer
-                                ?: result.header?.musicEditablePlaylistDetailHeaderRenderer
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.tabs
-                                    ?.get(0)
-                                    ?.tabRenderer
-                                    ?.content
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicResponsiveHeaderRenderer
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.tabs
-                                    ?.get(0)
-                                    ?.tabRenderer
-                                    ?.content
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicEditablePlaylistDetailHeaderRenderer
-                                    ?.header
-                                    ?.musicResponsiveHeaderRenderer
+                        val header = extractPlaylistHeader(result)
                         Logger.d("Header", "header: $header")
                         val finalContinueParam =
                             result.getPlaylistContinuation()
@@ -322,57 +278,12 @@ internal class PlaylistRepositoryImpl(
                     .customQuery(browseId = id, setLogin = true)
                     .onSuccess { result ->
                         val listContent: ArrayList<Track> = arrayListOf()
-                        val data: List<MusicShelfRenderer.Content>? =
-                            result.contents
-                                ?.singleColumnBrowseResultsRenderer
-                                ?.tabs
-                                ?.get(
-                                    0,
-                                )?.tabRenderer
-                                ?.content
-                                ?.sectionListRenderer
-                                ?.contents
-                                ?.get(
-                                    0,
-                                )?.musicPlaylistShelfRenderer
-                                ?.contents
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.secondaryContents
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicPlaylistShelfRenderer
-                                    ?.contents
+                        val data: List<MusicShelfRenderer.Content>? = extractPlaylistShelfContents(result)
                         if (data != null) {
                             Logger.d("getPlaylistData", "data: $data")
                             Logger.d("getPlaylistData", "data size: ${data.size}")
                         }
-                        val header =
-                            result.header?.musicDetailHeaderRenderer
-                                ?: result.header?.musicEditablePlaylistDetailHeaderRenderer
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.tabs
-                                    ?.get(0)
-                                    ?.tabRenderer
-                                    ?.content
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicResponsiveHeaderRenderer
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.tabs
-                                    ?.get(0)
-                                    ?.tabRenderer
-                                    ?.content
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicEditablePlaylistDetailHeaderRenderer
-                                    ?.header
-                                    ?.musicResponsiveHeaderRenderer
+                        val header = extractPlaylistHeader(result)
                         Logger.d("getPlaylistData", "header: $header")
                         var continueParam =
                             result.getPlaylistContinuation()
@@ -454,57 +365,12 @@ internal class PlaylistRepositoryImpl(
                     .customQuery(browseId = id, setLogin = true)
                     .onSuccess { result ->
                         val listContent: ArrayList<Track> = arrayListOf()
-                        val data: List<MusicShelfRenderer.Content>? =
-                            result.contents
-                                ?.singleColumnBrowseResultsRenderer
-                                ?.tabs
-                                ?.get(
-                                    0,
-                                )?.tabRenderer
-                                ?.content
-                                ?.sectionListRenderer
-                                ?.contents
-                                ?.get(
-                                    0,
-                                )?.musicPlaylistShelfRenderer
-                                ?.contents
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.secondaryContents
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicPlaylistShelfRenderer
-                                    ?.contents
+                        val data: List<MusicShelfRenderer.Content>? = extractPlaylistShelfContents(result)
                         if (data != null) {
                             Logger.d("getPlaylistData", "data: $data")
                             Logger.d("getPlaylistData", "data size: ${data.size}")
                         }
-                        val header =
-                            result.header?.musicDetailHeaderRenderer
-                                ?: result.header?.musicEditablePlaylistDetailHeaderRenderer
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.tabs
-                                    ?.get(0)
-                                    ?.tabRenderer
-                                    ?.content
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicResponsiveHeaderRenderer
-                                ?: result.contents
-                                    ?.twoColumnBrowseResultsRenderer
-                                    ?.tabs
-                                    ?.get(0)
-                                    ?.tabRenderer
-                                    ?.content
-                                    ?.sectionListRenderer
-                                    ?.contents
-                                    ?.get(0)
-                                    ?.musicEditablePlaylistDetailHeaderRenderer
-                                    ?.header
-                                    ?.musicResponsiveHeaderRenderer
+                        val header = extractPlaylistHeader(result)
                         Logger.d("getPlaylistData", "header: $header")
                         val continueParam =
                             result.getPlaylistContinuation()
@@ -564,16 +430,22 @@ internal class PlaylistRepositoryImpl(
                         data.contents
                             ?.singleColumnBrowseResultsRenderer
                             ?.tabs
-                            ?.get(
-                                0,
-                            )?.tabRenderer
+                            ?.firstOrNull()
+                            ?.tabRenderer
                             ?.content
                             ?.sectionListRenderer
                             ?.contents
-                            ?.get(
-                                0,
-                            )?.gridRenderer
+                            ?.mapNotNull { it.gridRenderer }
+                            ?.firstOrNull()
                             ?.items
+                            ?: data.contents
+                                ?.twoColumnBrowseResultsRenderer
+                                ?.secondaryContents
+                                ?.sectionListRenderer
+                                ?.contents
+                                ?.mapNotNull { it.gridRenderer }
+                                ?.firstOrNull()
+                                ?.items
                     val listItem = mutableListOf<PlaylistsResult>()
                     if (input.isNullOrEmpty()) {
                         Logger.w("Library", "No playlists found")
@@ -592,8 +464,8 @@ internal class PlaylistRepositoryImpl(
                             ?.content
                             ?.sectionListRenderer
                             ?.contents
+                            ?.mapNotNull { it.gridRenderer }
                             ?.firstOrNull()
-                            ?.gridRenderer
                             ?.continuations
                             ?.firstOrNull()
                             ?.nextContinuationData
@@ -789,4 +661,76 @@ internal class PlaylistRepositoryImpl(
                     emit(Resource.Error<List<ChartItem>>(exception.message ?: "Unknown error"))
                 }
         }.flowOn(Dispatchers.IO)
+
+    private fun extractPlaylistShelfContents(result: BrowseResponse): List<MusicShelfRenderer.Content>? {
+        return result.contents
+            ?.singleColumnBrowseResultsRenderer
+            ?.tabs
+            ?.firstOrNull()
+            ?.tabRenderer
+            ?.content
+            ?.sectionListRenderer
+            ?.contents
+            ?.mapNotNull { it.musicPlaylistShelfRenderer?.contents ?: it.musicShelfRenderer?.contents }
+            ?.firstOrNull()
+            ?: result.contents
+                ?.twoColumnBrowseResultsRenderer
+                ?.secondaryContents
+                ?.sectionListRenderer
+                ?.contents
+                ?.mapNotNull { it.musicPlaylistShelfRenderer?.contents ?: it.musicShelfRenderer?.contents }
+                ?.firstOrNull()
+            ?: result.contents
+                ?.twoColumnBrowseResultsRenderer
+                ?.tabs
+                ?.firstOrNull()
+                ?.tabRenderer
+                ?.content
+                ?.sectionListRenderer
+                ?.contents
+                ?.mapNotNull { it.musicPlaylistShelfRenderer?.contents ?: it.musicShelfRenderer?.contents }
+                ?.firstOrNull()
+            ?: result.contents
+                ?.sectionListRenderer
+                ?.contents
+                ?.mapNotNull { it.musicPlaylistShelfRenderer?.contents ?: it.musicShelfRenderer?.contents }
+                ?.firstOrNull()
+            ?: result.continuationContents
+                ?.musicPlaylistShelfContinuation
+                ?.contents
+    }
+
+    private fun extractPlaylistHeader(result: BrowseResponse): Any? {
+        return result.header?.musicDetailHeaderRenderer
+            ?: result.header?.musicEditablePlaylistDetailHeaderRenderer
+            ?: result.header?.musicResponsiveHeaderRenderer
+            ?: result.header?.musicImmersiveHeaderRenderer
+            ?: result.header?.musicVisualHeaderRenderer
+            ?: result.contents
+                ?.twoColumnBrowseResultsRenderer
+                ?.tabs
+                ?.firstOrNull()
+                ?.tabRenderer
+                ?.content
+                ?.sectionListRenderer
+                ?.contents
+                ?.mapNotNull {
+                    it.musicResponsiveHeaderRenderer
+                        ?: it.musicEditablePlaylistDetailHeaderRenderer
+                }
+                ?.firstOrNull()
+            ?: result.contents
+                ?.singleColumnBrowseResultsRenderer
+                ?.tabs
+                ?.firstOrNull()
+                ?.tabRenderer
+                ?.content
+                ?.sectionListRenderer
+                ?.contents
+                ?.mapNotNull {
+                    it.musicResponsiveHeaderRenderer
+                        ?: it.musicEditablePlaylistDetailHeaderRenderer
+                }
+                ?.firstOrNull()
+    }
 }
