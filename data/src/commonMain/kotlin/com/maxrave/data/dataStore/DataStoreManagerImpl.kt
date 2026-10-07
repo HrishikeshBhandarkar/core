@@ -457,6 +457,25 @@ internal class DataStoreManagerImpl(
         }
     }
 
+    override val pseudoWordByWordLyrics: Flow<String> =
+        settingsDataStore.data.map { preferences ->
+            preferences[PSEUDO_WORD_BY_WORD_LYRICS] ?: FALSE
+        }
+
+    override suspend fun setPseudoWordByWordLyrics(enable: Boolean) {
+        withContext(Dispatchers.IO) {
+            if (enable) {
+                settingsDataStore.edit { settings ->
+                    settings[PSEUDO_WORD_BY_WORD_LYRICS] = TRUE
+                }
+            } else {
+                settingsDataStore.edit { settings ->
+                    settings[PSEUDO_WORD_BY_WORD_LYRICS] = FALSE
+                }
+            }
+        }
+    }
+
     override val translationLanguage =
         settingsDataStore.data.map { preferences ->
             val languageValue = language.first()
@@ -1702,6 +1721,7 @@ internal class DataStoreManagerImpl(
         val CROSSFADE_SKIP_ALBUM = stringPreferencesKey("crossfade_skip_album")
         val AUTO_DOWNLOAD_LIKED_SONGS = stringPreferencesKey("auto_download_liked_songs")
         val LYRICS_PROVIDER = stringPreferencesKey("lyrics_provider")
+        val PSEUDO_WORD_BY_WORD_LYRICS = stringPreferencesKey("pseudo_word_by_word_lyrics")
         val TRANSLATION_LANGUAGE = stringPreferencesKey("translation_language")
         val USE_TRANSLATION_LANGUAGE = stringPreferencesKey("use_translation_language")
 

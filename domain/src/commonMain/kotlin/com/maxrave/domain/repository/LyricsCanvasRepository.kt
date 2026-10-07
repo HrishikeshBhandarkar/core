@@ -133,4 +133,12 @@ interface LyricsCanvasRepository {
         songTitle: String,
         artistName: String,
     ): List<String>?
+
+    suspend fun downloadLyrics(
+        dataStoreManager: DataStoreManager,
+        videoId: String,
+        title: String,
+        artist: String?,
+        duration: Int?,
+    ): Lyrics?
 }

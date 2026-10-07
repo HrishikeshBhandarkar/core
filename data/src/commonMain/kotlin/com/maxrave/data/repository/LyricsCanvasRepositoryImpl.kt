@@ -22,6 +22,7 @@ import com.maxrave.domain.utils.toListName
 import com.maxrave.domain.utils.toPlainLrcString
 import com.maxrave.domain.utils.toRichSyncLrcString
 import com.maxrave.domain.utils.toSyncedLrcString
+import com.maxrave.domain.utils.toLyricsEntity
 import com.maxrave.domain.utils.toSyncedLyrics
 import com.maxrave.kotlinytmusicscraper.YouTube
 import com.maxrave.logger.Logger
@@ -30,6 +31,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.runBlocking
@@ -836,5 +838,127 @@ internal class LyricsCanvasRepositoryImpl(
     ): List<String>? =
         withContext(Dispatchers.IO) {
             simpMusicLyrics.getSongwriters(songTitle, artistName)
+        }
+
+    override suspend fun downloadLyrics(
+        dataStoreManager: DataStoreManager,
+        videoId: String,
+        title: String,
+        artist: String?,
+        duration: Int?,
+    ): Lyrics? =
+        withContext(Dispatchers.IO) {
+            val cleanArtist = artist?.trim() ?: ""
+            val cleanTitle = title.trim()
+            val provider = dataStoreManager.lyricsProvider.first()
+            Logger.d("LyricsCanvasRepository", "downloadLyrics for $videoId ($cleanTitle by $cleanArtist) with provider: $provider")
+
+            fun isWordByWord(lyrics: Lyrics?): Boolean {
+                if (lyrics == null || lyrics.error) return false
+                if (lyrics.syncType == "RICH_SYNCED") return true
+                val lines = lyrics.lines ?: return false
+                if (lines.isEmpty()) return false
+                return lines.any { line ->
+                    !line.syllables.isNullOrEmpty() || line.words.contains(Regex("""<\d{2}:\d{2}\.\d{2,3}>"""))
+                }
+            }
+
+            fun isLineSynced(lyrics: Lyrics?): Boolean {
+                if (lyrics == null || lyrics.error) return false
+                if (lyrics.syncType == "LINE_SYNCED" || lyrics.syncType == "RICH_SYNCED") return true
+                val lines = lyrics.lines ?: return false
+                if (lines.isEmpty()) return false
+                return lines.any { line ->
+                    val start = line.startTimeMs.toLongOrNull() ?: 0L
+                    val end = line.endTimeMs.toLongOrNull() ?: 0L
+                    start > 0L || end > 0L
+                }
+            }
+
+            suspend fun fetchFromProvider(p: String): Lyrics? {
+                return try {
+                    when (p) {
+                        DataStoreManager.BINILYRICS -> {
+                            getBiniLyrics(cleanArtist, cleanTitle, duration).firstOrNull()?.data
+                        }
+                        DataStoreManager.BETTER_LYRICS -> {
+                            getBetterLyrics(cleanArtist, cleanTitle, duration).firstOrNull()?.data
+                        }
+                        DataStoreManager.QQ_MUSIC -> {
+                            getQQMusicLyrics(cleanArtist, cleanTitle, duration).firstOrNull()?.data
+                        }
+                        DataStoreManager.SIMPMUSIC -> {
+                            getSimpMusicLyrics(videoId).firstOrNull()?.data
+                        }
+                        DataStoreManager.LRCLIB -> {
+                            getLrclibLyricsData(cleanArtist, cleanTitle, duration).firstOrNull()?.data
+                        }
+                        DataStoreManager.YOUTUBE -> {
+                            getYouTubeCaption("", videoId).firstOrNull()?.data?.first
+                        }
+                        else -> null
+                    }
+                } catch (e: Exception) {
+                    Logger.w("LyricsCanvasRepository", "Error fetching lyrics from $p: ${e.message}")
+                    null
+                }
+            }
+
+            var resultLyrics: Lyrics? = null
+
+            // 1. If user selected a specific provider (not AUTO), query that provider first
+            if (provider != DataStoreManager.AUTO) {
+                val selected = fetchFromProvider(provider)
+                if (selected != null && !selected.lines.isNullOrEmpty() && !selected.error) {
+                    resultLyrics = selected
+                }
+            }
+
+            // 2. If not found or provider is AUTO, follow Auto resolution hierarchy:
+            if (resultLyrics == null) {
+                // Pass 1: Word-by-word
+                val bini = fetchFromProvider(DataStoreManager.BINILYRICS)
+                if (isWordByWord(bini)) {
+                    resultLyrics = bini
+                } else {
+                    val better = fetchFromProvider(DataStoreManager.BETTER_LYRICS)
+                    if (isWordByWord(better)) {
+                        resultLyrics = better
+                    } else {
+                        val qq = fetchFromProvider(DataStoreManager.QQ_MUSIC)
+                        if (isWordByWord(qq)) {
+                            resultLyrics = qq
+                        } else {
+                            val simp = fetchFromProvider(DataStoreManager.SIMPMUSIC)
+                            if (isWordByWord(simp)) {
+                                resultLyrics = simp
+                            } else {
+                                val lrclib = fetchFromProvider(DataStoreManager.LRCLIB)
+                                if (isWordByWord(lrclib)) {
+                                    resultLyrics = lrclib
+                                } else {
+                                    // Pass 2: Line-synced or plain
+                                    val candidates = listOfNotNull(bini, better, qq, simp, lrclib)
+                                    resultLyrics = candidates.firstOrNull { isLineSynced(it) }
+                                        ?: run {
+                                            val yt = fetchFromProvider(DataStoreManager.YOUTUBE)
+                                            if (isLineSynced(yt)) yt
+                                            else candidates.firstOrNull { !it.lines.isNullOrEmpty() } ?: yt
+                                        }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (resultLyrics != null && !resultLyrics.lines.isNullOrEmpty() && !resultLyrics.error) {
+                Logger.d("LyricsCanvasRepository", "Saving downloaded lyrics for $videoId ($cleanTitle)")
+                insertLyrics(resultLyrics.toLyricsEntity(videoId))
+                resultLyrics
+            } else {
+                Logger.w("LyricsCanvasRepository", "No lyrics available to download for $videoId ($cleanTitle)")
+                null
+            }
         }
 }

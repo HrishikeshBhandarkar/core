@@ -114,16 +114,21 @@ internal class SimpleMediaSessionCallback(
         playerCommand: Int,
     ): Int {
         Logger.w(TAG, "Player Command $playerCommand")
-        scope.launch {
-            when (playerCommand) {
-                COMMAND_SEEK_TO_NEXT -> {
+        when (playerCommand) {
+            COMMAND_SEEK_TO_NEXT -> {
+                scope.launch {
                     mediaPlayerHandler.onPlayerEvent(PlayerEvent.Next)
                 }
-                COMMAND_SEEK_TO_PREVIOUS -> {
+                return SessionResult.RESULT_INFO_SKIPPED
+            }
+            COMMAND_SEEK_TO_PREVIOUS -> {
+                scope.launch {
                     mediaPlayerHandler.onPlayerEvent(PlayerEvent.Previous)
                 }
-                COMMAND_GET_TIMELINE -> {
-                }
+                return SessionResult.RESULT_INFO_SKIPPED
+            }
+            COMMAND_GET_TIMELINE -> {
+                return SessionResult.RESULT_INFO_SKIPPED
             }
         }
         return super.onPlayerCommandRequest(session, controller, playerCommand)

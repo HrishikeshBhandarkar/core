@@ -41,8 +41,17 @@ internal class DelegatingForwardingPlayer(
                     isAccessible = true
                 }
             } catch (e: Exception) {
-                Logger.e(TAG, "Failed to access ForwardingPlayer.player field", e)
-                null
+                try {
+                    // Fallback if R8/ProGuard obfuscated the field name: find the field by Player type
+                    ForwardingPlayer::class.java.declaredFields.firstOrNull {
+                        Player::class.java.isAssignableFrom(it.type)
+                    }?.apply {
+                        isAccessible = true
+                    }
+                } catch (e2: Exception) {
+                    Logger.e(TAG, "Failed to access ForwardingPlayer.player field", e2)
+                    null
+                }
             }
     }
 

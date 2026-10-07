@@ -4,6 +4,7 @@ import com.maxrave.common.MERGING_DATA_TYPE
 import com.maxrave.domain.data.entities.DownloadState
 import com.maxrave.domain.manager.DataStoreManager
 import com.maxrave.domain.mediaservice.handler.DownloadHandler
+import com.maxrave.domain.repository.LyricsCanvasRepository
 import com.maxrave.domain.repository.SongRepository
 import com.maxrave.domain.repository.StreamRepository
 import com.maxrave.domain.utils.toTrack
@@ -19,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.launch
 import java.io.File
@@ -35,6 +37,7 @@ internal class DownloadUtils(
     private val dataStoreManager: DataStoreManager,
     private val streamRepository: StreamRepository,
     private val songRepository: SongRepository,
+    private val lyricsCanvasRepository: LyricsCanvasRepository,
 ) : DownloadHandler {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -85,6 +88,23 @@ internal class DownloadUtils(
         thumbnail: String,
     ) {
         val song = songRepository.getSongById(videoId).lastOrNull()
+        // Concurrently download and save lyrics for offline playback
+        coroutineScope.launch {
+            try {
+                val songEntity = song ?: songRepository.getSongById(videoId).firstOrNull()
+                val artist = songEntity?.artistName?.firstOrNull() ?: ""
+                val duration = songEntity?.durationSeconds
+                lyricsCanvasRepository.downloadLyrics(
+                    dataStoreManager = dataStoreManager,
+                    videoId = videoId,
+                    title = title,
+                    artist = artist,
+                    duration = duration,
+                )
+            } catch (e: Exception) {
+                Logger.e(TAG, "Failed to download lyrics for $videoId: ${e.message}")
+            }
+        }
         if (song != null) {
             songRepository.updateDownloadState(
                 videoId,

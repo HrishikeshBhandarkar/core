@@ -54,6 +54,7 @@ private val desktopPlayerModule =
                 dataStoreManager = get(),
                 streamRepository = get(),
                 songRepository = get(),
+                lyricsCanvasRepository = get(),
             )
         }
     }

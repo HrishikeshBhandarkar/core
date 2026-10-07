@@ -126,6 +126,10 @@ interface DataStoreManager {
 
     suspend fun setLyricsProvider(provider: String)
 
+    val pseudoWordByWordLyrics: Flow<String>
+
+    suspend fun setPseudoWordByWordLyrics(enable: Boolean)
+
     val translationLanguage: Flow<String>
 
     suspend fun setTranslationLanguage(language: String)

@@ -23,6 +23,7 @@ import com.maxrave.domain.data.entities.DownloadState
 import com.maxrave.domain.extension.now
 import com.maxrave.domain.manager.DataStoreManager
 import com.maxrave.domain.mediaservice.handler.DownloadHandler
+import com.maxrave.domain.repository.LyricsCanvasRepository
 import com.maxrave.domain.repository.SongRepository
 import com.maxrave.domain.repository.StreamRepository
 import com.maxrave.logger.Logger
@@ -51,6 +52,7 @@ internal class DownloadUtils(
     private val streamRepository: StreamRepository,
     private val songRepository: SongRepository,
     databaseProvider: DatabaseProvider,
+    private val lyricsCanvasRepository: LyricsCanvasRepository,
 ) : DownloadHandler {
     private val coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -235,6 +237,24 @@ internal class DownloadUtils(
                 downloadRequestVideo,
                 false,
             )
+        }
+
+        // Concurrently download and save lyrics for offline playback
+        coroutineScope.launch {
+            try {
+                val song = songRepository.getSongById(videoId).firstOrNull()
+                val artist = song?.artistName?.firstOrNull() ?: ""
+                val duration = song?.durationSeconds
+                lyricsCanvasRepository.downloadLyrics(
+                    dataStoreManager = dataStoreManager,
+                    videoId = videoId,
+                    title = title,
+                    artist = artist,
+                    duration = duration,
+                )
+            } catch (e: Exception) {
+                Logger.e("DownloadUtils", "Failed to download lyrics for $videoId: ${e.message}")
+            }
         }
     }
 

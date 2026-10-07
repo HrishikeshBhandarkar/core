@@ -33,6 +33,7 @@ import com.maxrave.media3.R
 import com.maxrave.media3.extension.toCommandButton
 import com.maxrave.media3.utils.CoilBitmapLoader
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
@@ -145,6 +146,8 @@ internal class SimpleMediaService :
                     .Builder(this, 2026, "media_playback_channel")
                     .setNotificationListener(
                         object : PlayerNotificationManager.NotificationListener {
+                            private var keepAliveJob: Job? = null
+
                             override fun onNotificationPosted(
                                 notificationId: Int,
                                 notification: Notification,
@@ -157,12 +160,21 @@ internal class SimpleMediaService :
                                         startForeground(notificationId, notification)
                                     }
                                 }
-                                coroutineScope.launch {
-                                    while (coroutineScope.isActive) {
+                                keepAliveJob?.cancel()
+                                keepAliveJob = coroutineScope.launch {
+                                    while (isActive) {
                                         startFg()
                                         delay(30.seconds)
                                     }
                                 }
+                            }
+
+                            override fun onNotificationCancelled(
+                                notificationId: Int,
+                                dismissedByUser: Boolean,
+                            ) {
+                                keepAliveJob?.cancel()
+                                keepAliveJob = null
                             }
                         },
                     ).setMediaDescriptionAdapter(DefaultMediaDescriptionAdapter(mediaSession?.sessionActivity))
